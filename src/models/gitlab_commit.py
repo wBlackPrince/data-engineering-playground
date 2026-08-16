@@ -52,10 +52,10 @@ class GitlabCommit:
     @classmethod
     def from_dict(cls, data: dict) -> "GitlabCommit":
         return cls(
-            id=UUID(data["id"]),
+            id=data["id"],
             short_id=data["short_id"],
             created_at=datetime.fromisoformat(data["created_at"]),
-            parent_ids=[UUID(parent_id) for parent_id in data["parent_ids"]],
+            parent_ids=[parent_id for parent_id in data["parent_ids"]],
             title=data["title"],
             message=data["message"],
             author_name=data["author_name"],

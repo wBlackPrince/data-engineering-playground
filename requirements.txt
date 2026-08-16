@@ -1,4 +1,8 @@
 clickhouse-driver
 pytest
+pytest-asyncio
 pandas
-sqlalchemy
+mypy
+ruff
+pydantic
+pydantic-settings

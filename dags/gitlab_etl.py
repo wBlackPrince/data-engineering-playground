@@ -1,11 +1,16 @@
 import json
 import logging
+import os
+from httpx import Response
 import pendulum
 
 from airflow.sdk import dag, task
 from clickhouse_driver import Client
 
+from apis.app_logger import AppLogger
 from apis.async_http_client import AsyncHttpClient
+from apis.gitlab_client import GitlabClient
+from apis.result import Result, is_failure
 from models.gitlab_commit import GitlabCommit
 
 
@@ -26,11 +31,32 @@ logger = logging.getLogger(__name__)
 def gitlab_etl():
 
     @task()
-    def extract():
+    async def extract():
         logger.info("Начало извлечения данных...")
-        data_string: str = AsyncHttpClient.get_commit_from_gitlab_api()
+
+        token = os.getenv("GITLAB_API_TOKEN")
+        if token is None:
+            raise RuntimeError("GITLAB_API_TOKEN is not set")
+        
+        http_client = AsyncHttpClient(
+            base_url="https://gitlab.com/api/v4", 
+            headers={
+                "PRIVATE-TOKEN": token,
+            }
+        )
+
+        gitlab_client = GitlabClient(http_client)
+
+        response: Result[Response] = await gitlab_client.get_commits_async(75591172)
+
+        if is_failure(response):
+            AppLogger.log_error(f"message: {response.message}, code: {response.code}, details: {response.details}")
+
+        
+        data = response.value.content
+
         try:
-            commit_data_dict: list[dict] = json.loads(data_string)
+            commit_data_dict: list[dict] = json.loads(data)
         except:
             logger.exception("Ошибка при десериализации json")
             raise
