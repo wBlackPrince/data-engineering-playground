@@ -25,10 +25,18 @@ class Success[T]:
     message: str | None = None
 
 @dataclass(frozen=True)
+class FailureContext:
+    """Context describing where and during which operation a failure occurred."""
+    operation: str
+    source: str
+
+
+@dataclass(frozen=True)
 class Failure:
     """Failed operation result."""
     message: str
     code: ErrorCode
+    context: FailureContext
     details: dict[str, Any] | None = None
 
 # The Result type alias
@@ -51,6 +59,7 @@ def success[T](value: T, message: str | None = None) -> Success[T]:
 def failure(
     message: str,
     code: ErrorCode,
+    context: FailureContext | None = None,
     details: dict[str, Any] | None = None
 ) -> Failure:
     """Create a failed operation result.
@@ -58,12 +67,13 @@ def failure(
     Args:
         message: Description of the error.
         code: Application-specific error code.
+        context: Where and during which operation a failure occurred.
         details: Optional additional information about the error.
 
     Returns:
         A Failure instance containing error information.
     """
-    return Failure(message=message, code=code, details=details)
+    return Failure(message=message, code=code, contex=context, details=details)
 
 
 
@@ -122,11 +132,12 @@ def _get_error_code(exc: HTTPError) -> ErrorCode:
 
     return ErrorCode.UNKNOWN
 
-def handle_http_error(exc: HTTPError) -> Failure:
-    """Convert an HTTPX exception into a Failure result.
+def create_http_error(exc: HTTPError, context: FailureContext | None = None) -> Failure:
+    """Create an HTTPX exception into a Failure result.
 
     Args:
         exc: HTTPX exception raised during an HTTP operation.
+        context: Where and during which operation a failure occurred.
 
     Returns:
         Failure containing the mapped error code and exception details.
@@ -143,5 +154,6 @@ def handle_http_error(exc: HTTPError) -> Failure:
     return failure(
         message=type(exc).__name__,
         code=_get_error_code(exc),
+        context = context,
         details=details,
     )
