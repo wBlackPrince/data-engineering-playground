@@ -10,6 +10,7 @@ class ErrorCode(Enum):
     VALIDATION_ERROR = "validation_error"
     PERMISSION_DENIED = "permission_denied"
     UNKNOWN = "unknown"
+    JSON_DESERIALIZATION_ERROR = "json_deserialization_error"
 
     # HTTP
     HTTP_STATUS_ERROR = "http_status_error"

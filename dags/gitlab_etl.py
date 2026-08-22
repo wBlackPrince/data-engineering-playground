@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 from httpx import Response
 import pendulum
@@ -15,13 +14,6 @@ from models.gitlab_commit import GitlabCommit
 
 
 
-logging.basicConfig(
-    format='%(asctime)s %(levelname)s:%(name)s:%(message)s',
-    datefmt='%d.%m.%Y %H:%M:%S'
-)
-logger = logging.getLogger(__name__)
-
-
 @dag(
     schedule=None,
     start_date=pendulum.datetime(2021, 1, 1, tz="UTC"),
@@ -29,10 +21,11 @@ logger = logging.getLogger(__name__)
     tags=["example"],
 )
 def gitlab_etl():
+    logger = AppLogger("GITLAB_ETL")
 
     @task()
     async def extract():
-        logger.info("Начало извлечения данных...")
+        logger.log_info("Начало извлечения данных...")
 
         token = os.getenv("GITLAB_API_TOKEN")
         if token is None:
@@ -47,35 +40,17 @@ def gitlab_etl():
 
         gitlab_client = GitlabClient(http_client)
 
-        response: Result[Response] = await gitlab_client.get_commits_async(75591172)
+        logger.log_info("Начало сбора и трансформации данных...")
+
+        response: Result[list[GitlabCommit]] = await gitlab_client.get_commits_async(75591172)
 
         if is_failure(response):
-            AppLogger.log_error(f"message: {response.message}, code: {response.code}, details: {response.details}")
-
-        
-        data = response.value.content
-
-        try:
-            commit_data_dict: list[dict] = json.loads(data)
-        except:
-            logger.exception("Ошибка при десериализации json")
+            logger.log_error(response)
             raise
-        return commit_data_dict
-
-    
-    @task()
-    def transform_and_load(commit_data_dict: list[dict]):
-        logger.info("Начало трансформации данных...")
-
-        commits: list[GitlabCommit] = []
         
-        for commit_data in commit_data_dict:
-            commits.append(GitlabCommit.from_dict(commit_data))
-        
-        batch: list[tuple] = [commit.to_tuple() for commit in commits]
+        batch: list[tuple] = [commit.to_tuple() for commit in response]
 
-
-        logger.info("Начало загрузки данных в ClickHouse...")
+        logger.log_info("Начало загрузки данных в ClickHouse...")
 
         client = Client(
             host="clickhouse",
@@ -88,7 +63,7 @@ def gitlab_etl():
         try:
             client.execute(f'INSERT INTO {GitlabCommit.PATH_TO_TABLE} ({GitlabCommit.columns()}) VALUES', batch)
         except Exception as ex:
-            logger.exception("Ошибка при загрузке в ClickHouse")
+            logger.log_exception("Ошибка при загрузке в ClickHouse", ex)
             raise
 
 
