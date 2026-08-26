@@ -4,12 +4,12 @@ from httpx import Response
 import pendulum
 
 from airflow.sdk import dag, task
-from clickhouse_driver import Client
 
 from apis.app_logger import AppLogger
 from apis.async_http_client import AsyncHttpClient
+from apis.clickhouse_repository import ClickHouseRepository
 from apis.gitlab_client import GitlabClient
-from apis.result import Result, is_failure
+from apis.result import Result, UnitResult, is_failure
 from models.gitlab_commit import GitlabCommit
 
 
@@ -46,30 +46,22 @@ def gitlab_etl():
 
         if is_failure(response):
             logger.log_error(response)
-            raise
+            raise RuntimeError(response.message)
         
         batch: list[tuple] = [commit.to_tuple() for commit in response]
 
         logger.log_info("Начало загрузки данных в ClickHouse...")
 
-        client = Client(
-            host="clickhouse",
-            port=9000,
-            database="warehouse",
-            user="student",
-            password="strongpassword",
-        )
+        repository = ClickHouseRepository()
 
-        try:
-            client.execute(f'INSERT INTO {GitlabCommit.PATH_TO_TABLE} ({GitlabCommit.columns()}) VALUES', batch)
-        except Exception as ex:
-            logger.log_exception("Ошибка при загрузке в ClickHouse", ex)
-            raise
+        insert_result: UnitResult = repository.insert_query(GitlabCommit, batch)
+
+        if is_failure(insert_result):
+            logger.log_error(insert_result)
+            raise RuntimeError(response.message)
 
 
-
-    commits_data = extract()
-    transform_and_load(commits_data)
+    extract()
 
 
 gitlab_etl()

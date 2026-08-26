@@ -39,10 +39,17 @@ class Failure:
     context: FailureContext
     details: dict[str, Any] | None = None
 
+
+@dataclass(frozen=True)
+class Unit:
+    """Represents a successful operation with no return value."""
+
+
 # The Result type alias
 type Result[T] = Success[T] | Failure
+type UnitResult = Result[Unit]
 
-
+_UNIT = Unit()
 
 def success[T](value: T, message: str | None = None) -> Success[T]:
     """Create a successful operation result.
@@ -56,10 +63,22 @@ def success[T](value: T, message: str | None = None) -> Success[T]:
     """
     return Success(value=value, message=message)
 
+def unit_success(message: str | None = None) -> UnitResult:
+    """Create a successful result for an operation without a return value.
+
+    Args:
+        message: Optional descriptive message.
+
+    Returns:
+        A successful UnitResult.
+    """
+    return Success(value=_UNIT, message=message)
+
+
 def failure(
     message: str,
     code: ErrorCode,
-    context: FailureContext | None = None,
+    context: FailureContext,
     details: dict[str, Any] | None = None
 ) -> Failure:
     """Create a failed operation result.
@@ -73,7 +92,7 @@ def failure(
     Returns:
         A Failure instance containing error information.
     """
-    return Failure(message=message, code=code, contex=context, details=details)
+    return Failure(message=message, code=code, context=context, details=details)
 
 
 
@@ -132,7 +151,7 @@ def _get_error_code(exc: HTTPError) -> ErrorCode:
 
     return ErrorCode.UNKNOWN
 
-def create_http_error(exc: HTTPError, context: FailureContext | None = None) -> Failure:
+def create_http_error(exc: HTTPError, context: FailureContext) -> Failure:
     """Create an HTTPX exception into a Failure result.
 
     Args:

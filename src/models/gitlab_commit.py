@@ -3,9 +3,12 @@ from datetime import datetime
 from typing import ClassVar
 from uuid import UUID
 
+from src.models.entity import Entity
+
+
 
 @dataclass(slots=True)
-class GitlabCommit:
+class GitlabCommit(Entity):
     DATABASE = "warehouse"
     TABLE_NAME = "commits"
     PATH_TO_TABLE = f"{DATABASE}.{TABLE_NAME}"

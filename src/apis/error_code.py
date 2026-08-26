@@ -26,6 +26,9 @@ class ErrorCode(Enum):
     AUTH_FAILED = "auth_failed"
     TOKEN_EXPIRED = "token_expired"
 
+    #DATABASE
+    CLICKHOUSE_INSERT_ERROR = "clickhouse_insert_error"
+
     # Network
     NETWORK_ERROR = "network_error"
     TIMEOUT = "timeout"
