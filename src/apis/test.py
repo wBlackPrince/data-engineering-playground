@@ -6,11 +6,11 @@ import logging
 from clickhouse_driver import Client
 from httpx import Response
 
-from apis.app_logger import AppLogger
-from apis.gitlab_client import GitlabClient
-from apis.result import Result, is_failure
-from apis.async_http_client import AsyncHttpClient
-from models.gitlab_commit import GitlabCommit
+from src.apis.app_logger import AppLogger
+from src.apis.gitlab_client import GitlabClient
+from src.apis.result import Result, is_failure
+from src.apis.async_http_client import AsyncHttpClient
+from src.models.gitlab_commit import GitlabCommit
 
 async def run_etl():
 

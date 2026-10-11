@@ -3,7 +3,7 @@ from typing import Any, Self
 
 from httpx import AsyncClient, HTTPError, Response
 
-from apis.result import FailureContext, Result, create_http_error, success
+from src.apis.result import FailureContext, Result, create_http_error, success
 
 
 class AsyncHttpClient:
@@ -44,7 +44,7 @@ class AsyncHttpClient:
         """
         context = FailureContext(
             operation="get_async",
-            component=self.__class__.__name__,
+            source=self.__class__.__name__,
         )
 
         try:

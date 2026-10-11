@@ -11,6 +11,7 @@ class ErrorCode(Enum):
     PERMISSION_DENIED = "permission_denied"
     UNKNOWN = "unknown"
     JSON_DESERIALIZATION_ERROR = "json_deserialization_error"
+    PARSE_ERROR = "parse_error"
 
     # HTTP
     HTTP_STATUS_ERROR = "http_status_error"

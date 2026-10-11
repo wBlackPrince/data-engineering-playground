@@ -1,9 +1,10 @@
 from enum import Enum
 import logging
 import re
+import sys
 from typing import ClassVar
 
-from apis.result import Failure
+from src.apis.result import Failure
 
 stream_format = (
     "{asctime} | {emoji} | {levelname} | {name} | "
@@ -12,9 +13,17 @@ stream_format = (
 
 _SECRETS_PATTERN = re.compile(
     r"""
-    (?P<key>password|token|secret|api_key|authorization|bearer|basic)
+    (?P<key>password|token|secret|api_key|authorization)
     \s*[:=]\s*
-    (?:"(?P<quoted>[^"]*)"|'(?P<single>[^']*)'|(?P<plain>\S+))
+    (?:
+        (?P<scheme>Bearer|Basic)\s+\S+
+        |
+        "(?P<quoted>[^"]*)"
+        |
+        '(?P<single>[^']*)'
+        |
+        (?P<plain>\S+)
+    )
     """,
     re.IGNORECASE | re.VERBOSE,
 )
@@ -67,11 +76,12 @@ class AppLogger:
                 Logger configuration is initialized only once for each name.
         """
         self._logger = logging.getLogger(name)
+        self._logger.propagate = False
 
         if name not in AppLogger._logger_names:
             self._logger.setLevel(logging.DEBUG)
 
-            stream_handler = logging.StreamHandler()
+            stream_handler = logging.StreamHandler(sys.stdout)
             stream_handler.setLevel(logging.DEBUG)
             stream_formatter = logging.Formatter(stream_format, style="{")
             stream_handler.setFormatter(stream_formatter)

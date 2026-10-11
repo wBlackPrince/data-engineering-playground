@@ -2,11 +2,11 @@ import json
 
 from httpx import Response
 
-from apis.app_logger import AppLogger
-from apis.async_http_client import AsyncHttpClient
-from apis.error_code import ErrorCode
-from apis.result import FailureContext, Result, failure, is_failure, success
-from models.gitlab_commit import GitlabCommit
+from src.apis.app_logger import AppLogger
+from src.apis.async_http_client import AsyncHttpClient
+from src.apis.error_code import ErrorCode
+from src.apis.result import FailureContext, Result, failure, is_failure, success
+from src.models.gitlab_commit import GitlabCommit
 
 
 class GitlabClient:

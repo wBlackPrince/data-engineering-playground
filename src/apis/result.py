@@ -15,7 +15,7 @@ from httpx import (
     UnsupportedProtocol,
 )
 
-from apis.error_code import ErrorCode
+from src.apis.error_code import ErrorCode
 
 
 @dataclass(frozen=True)

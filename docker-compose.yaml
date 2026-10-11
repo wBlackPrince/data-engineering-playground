@@ -75,7 +75,7 @@ x-airflow-common: &airflow-common
     # for other purpose (development, test and especially production usage) build/extend Airflow image.
     # _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-clickhouse-connect==1.3.0 pandas==3.0.3 numpy==2.5.0}
     # The following line can be used to set a custom config file, stored in the local config folder
-    PYTHONPATH: /opt/airflow/src
+    PYTHONPATH: /opt/airflow
     AIRFLOW_CONFIG: "/opt/airflow/config/airflow.cfg"
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
@@ -124,7 +124,7 @@ services:
     image: clickhouse:25.8
     container_name: clickhouse
 
-    restart: unless-stopped
+    restart: no
 
     ports:
       - "8123:8123" # HTTP
