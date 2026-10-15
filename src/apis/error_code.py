@@ -12,6 +12,7 @@ class ErrorCode(Enum):
     UNKNOWN = "unknown"
     JSON_DESERIALIZATION_ERROR = "json_deserialization_error"
     PARSE_ERROR = "parse_error"
+    MODEL_CREATE_EXCEPTION = "model_create_exception"
 
     # HTTP
     HTTP_STATUS_ERROR = "http_status_error"

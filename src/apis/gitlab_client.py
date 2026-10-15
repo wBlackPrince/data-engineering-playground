@@ -30,6 +30,11 @@ class GitlabClient:
             Result containing the list of gitlab commits on success or a Failure
             describing the error.
         """
+        context = FailureContext(
+            operation="get_commits_async",
+            source=self.__class__.__name__,
+        ),
+
         response: Result[Response] = await self._http_client.get_async(url=f"/projects/{project_id}/repository/commits")
 
         if is_failure(response):
@@ -49,10 +54,7 @@ class GitlabClient:
             return failure(
                 message="Failed to deserialize GitLab response",
                 code=ErrorCode.JSON_DESERIALIZATION_ERROR,
-                context=FailureContext(
-                    operation="get_commits_async",
-                    source=self.__class__.__name__,
-                ),
+                context=context,
                 details={
                     "exception": type(ex).__name__,
                     "detail": str(ex),
@@ -62,6 +64,19 @@ class GitlabClient:
         commits: list[GitlabCommit] = []
                 
         for commit_data in commit_data_dict:
-            commits.append(GitlabCommit.from_dict(commit_data))
+            from_dict_result: Result[GitlabCommit] = GitlabCommit.from_dict(commit_data)
+
+            if is_failure(from_dict_result):
+                return failure(
+                    message="Failed to create GitLab Commit",
+                    code=ErrorCode.MODEL_CREATE_EXCEPTION,
+                    context=context,
+                    details={
+                        "exception": type(ex).__name__,
+                        "detail": str(ex),
+                    },
+                )
+
+            commits.append(from_dict_result.value)
         
         return success(commits)

@@ -65,3 +65,9 @@ def gitlab_etl():
 
 
 gitlab_etl()
+
+
+
+if __name__ == "__main__":
+    dag_instance = gitlab_etl()
+    dag_instance.test()

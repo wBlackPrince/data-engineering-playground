@@ -1,3 +1,5 @@
+import traceback
+
 from clickhouse_driver import Client
 
 from src.apis.app_logger import AppLogger
@@ -19,9 +21,14 @@ class ClickHouseRepository:
 
     def insert_query(self, cls: type[Entity], batch: list[tuple]) -> UnitResult:
         try:
-            self._client.execute(f'INSERT INTO {cls.PATH_TO_TABLE} ({cls.columns()})', batch)
+            insert_query = f'INSERT INTO {cls.PATH_TO_TABLE} ({cls.columns()}) VALUES'
+            self._client.execute(insert_query, batch)
             return unit_success("Success insert to CH!")
         except Exception as ex:
+            self._logger.log_error(
+                f"ClickHouse insert failed:\n{traceback.format_exc()}"
+            )
+            
             result = failure(
                 message="Ошибка при загрузке в ClickHouse",
                 code=ErrorCode.CLICKHOUSE_INSERT_ERROR,
