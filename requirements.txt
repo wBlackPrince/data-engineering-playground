@@ -7,3 +7,4 @@ ruff
 pydantic
 pydantic-settings
 testcontainers
+psycopg[binary]

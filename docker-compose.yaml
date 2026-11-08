@@ -218,6 +218,9 @@ services:
       # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
       DUMB_INIT_SETSID: "0"
     restart: always
+    networks:
+    - default
+    - shared-db
     depends_on:
       <<: *airflow-common-depends-on
       airflow-apiserver:
@@ -377,3 +380,7 @@ volumes:
   postgres-db-volume:
   clickhouse_data:
   clickhouse_logs:
+
+networks:
+  shared-db:
+    external: true

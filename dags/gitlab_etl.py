@@ -19,12 +19,12 @@ from src.models.gitlab_commit import GitlabCommit
     tags=["example"],
 )
 def gitlab_etl():
-    logger = AppLogger("GITLAB_ETL")\
+    logger = AppLogger("GITLAB_ETL")
 
     @task()
-    async def gitlab_etl() -> list[GitlabCommit]:
+    async def extract_commits() -> Result[list[tuple]]:
         logger.log_info("Начало извлечения данных...")
-
+        
         token = os.getenv("GITLAB_API_TOKEN")
         if token is None:
             raise RuntimeError("GITLAB_API_TOKEN is not set")
@@ -48,7 +48,13 @@ def gitlab_etl():
 
         commit_list: list[GitlabCommit] = response_result.value
 
+        logger.log_info("Начало трансформации данных...")
         batch: list[tuple] = [commit.to_tuple() for commit in commit_list]
+
+        return batch
+    
+    @task()
+    def load_commits(batch: list[tuple]) -> None:
 
         logger.log_info("Начало загрузки данных в ClickHouse...")
                 
@@ -61,7 +67,8 @@ def gitlab_etl():
             raise RuntimeError(insert_result.message)
 
 
-    gitlab_etl()
+    commits: list[tuple] = extract_commits()
+    load_commits(commits)
 
 
 gitlab_etl()
