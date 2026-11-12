@@ -9,6 +9,9 @@ import psycopg2
 
 from airflow.sdk import dag, task
 
+from src.apis.clickhouse_connection import ClickHouseConnection
+from src.apis.postgres_connection import PostgresConnection
+from src.apis.postgres_repository import PostgresRepository
 from src.apis.clickhouse_repository import ClickHouseRepository
 from src.models.question import Question
 from src.apis.error_code import ErrorCode
@@ -39,88 +42,81 @@ def export_question_2ch_etl():
 
         logger.info("Начало извлечения данных из PostgreSQL...")
 
-        pg_connection_string = os.getenv("CONNECTIONSTRINGS__POSTGRES")
+        pg_connection_result = PostgresConnection.from_connection_string(
+            os.getenv("POSTGRES_CONNECTION_STRING")
+        )
 
-        if not pg_connection_string:
-            raise RuntimeError(
-                "CONNECTIONSTRINGS__POSTGRES is not set"
-            )
+        if is_failure(pg_connection_result):
+            raise RuntimeError(pg_connection_result.message)
 
-        repository = ClickHouseRepository()
+        postgres_repository = PostgresRepository(pg_connection_result.value)
+
+        clh_connection_result: Result[ClickHouseConnection] = ClickHouseConnection.from_connection_string(os.getenv("CLICKHOUSE_CONNECTION_STRING"))
+        if is_failure(clh_connection_result):
+            logger.log_error(clh_connection_result)
+            raise RuntimeError(clh_connection_result.message)
+
+        repository = ClickHouseRepository(clh_connection_result.value)
+        
         batch_size = 1000
         total_count = 0
 
-        with closing(
-            psycopg2.connect(pg_connection_string)
-        ) as pg_conn:
+        with postgres_repository.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    id,
+                    description,
+                    "Type",
+                    points_cost,
+                    test_id,
+                    position_index,
+                    match_ids,
+                    option_ids,
+                    right_answer
+                FROM public.questions
+            """)
 
-            with pg_conn.cursor() as cur:
-                cur.execute("""
-                    SELECT
-                        inet_server_addr(),
-                        inet_server_port(),
-                        current_database(),
-                        to_regclass('public.questions'),
-                        to_regclass('questions')
-                """)
+            while True:
+                rows: list[tuple[Any, ...]] = cur.fetchmany(batch_size)
 
-                logger.info("PostgreSQL diagnostic: %s", cur.fetchone())
+                if not rows:
+                    break
 
-                cur.execute("""
-                    SELECT
-                        id,
-                        description,
-                        "Type",
-                        points_cost,
-                        test_id,
-                        position_index,
-                        match_ids,
-                        option_ids,
-                        right_answer
-                    FROM public.questions
-                """)
+                questions: list[Question] = []
 
-                while True:
-                    rows: list[tuple[Any, ...]] = cur.fetchmany(batch_size)
+                for row in rows:
+                    question_result: Result[Question] = (
+                        Question.from_tuple(row)
+                    )
 
-                    if not rows:
-                        break
-
-                    questions: list[Question] = []
-
-                    for row in rows:
-                        question_result: Result[Question] = (
-                            Question.from_tuple(row)
+                    if is_failure(question_result):
+                        raise RuntimeError(
+                            f"Failed to create Question: "
+                            f"{question_result.message}. "
+                            f"Details: {question_result.details}"
                         )
 
-                        if is_failure(question_result):
-                            raise RuntimeError(
-                                f"Failed to create Question: "
-                                f"{question_result.message}. "
-                                f"Details: {question_result.details}"
-                            )
+                    questions.append(question_result.value)
 
-                        questions.append(question_result.value)
+                batch: list[tuple] = [
+                    question.to_tuple()
+                    for question in questions
+                ]
 
-                    batch: list[tuple] = [
-                        question.to_tuple()
-                        for question in questions
-                    ]
+                logger.info(
+                    "Загрузка батча в ClickHouse. Размер: %s",
+                    len(batch),
+                )
 
-                    logger.info(
-                        "Загрузка батча в ClickHouse. Размер: %s",
-                        len(batch),
-                    )
+                insert_result: UnitResult = (
+                    repository.insert_query(Question, batch)
+                )
 
-                    insert_result: UnitResult = (
-                        repository.insert_query(Question, batch)
-                    )
+                if is_failure(insert_result):
+                    logger.error(insert_result)
+                    raise RuntimeError(insert_result.message)
 
-                    if is_failure(insert_result):
-                        logger.error(insert_result)
-                        raise RuntimeError(insert_result.message)
-
-                    total_count += len(batch)
+                total_count += len(batch)
 
         logger.info(
             "ETL завершён. Всего обработано записей: %s",

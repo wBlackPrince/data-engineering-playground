@@ -3,6 +3,7 @@ import pendulum
 
 from airflow.sdk import dag, task
 
+from src.apis.clickhouse_connection import ClickHouseConnection
 from src.apis.app_logger import AppLogger
 from src.apis.async_http_client import AsyncHttpClient
 from src.apis.clickhouse_repository import ClickHouseRepository
@@ -22,7 +23,7 @@ def gitlab_etl():
     logger = AppLogger("GITLAB_ETL")
 
     @task()
-    async def extract_commits() -> Result[list[tuple]]:
+    async def extract_and_load() -> None:
         logger.log_info("Начало извлечения данных...")
         
         token = os.getenv("GITLAB_API_TOKEN")
@@ -51,14 +52,14 @@ def gitlab_etl():
         logger.log_info("Начало трансформации данных...")
         batch: list[tuple] = [commit.to_tuple() for commit in commit_list]
 
-        return batch
-    
-    @task()
-    def load_commits(batch: list[tuple]) -> None:
-
         logger.log_info("Начало загрузки данных в ClickHouse...")
-                
-        repository = ClickHouseRepository()
+
+        clh_connection_result: Result[ClickHouseConnection] = ClickHouseConnection.from_connection_string(os.getenv("CLICKHOUSE_CONNECTION_STRING"))
+        if is_failure(clh_connection_result):
+            logger.log_error(clh_connection_result)
+            raise RuntimeError(clh_connection_result.message)
+
+        repository = ClickHouseRepository(clh_connection_result.value)
 
         insert_result: UnitResult = repository.insert_query(GitlabCommit, batch)
 
@@ -67,9 +68,7 @@ def gitlab_etl():
             raise RuntimeError(insert_result.message)
 
 
-    commits: list[tuple] = extract_commits()
-    load_commits(commits)
-
+    extract_and_load()
 
 gitlab_etl()
 

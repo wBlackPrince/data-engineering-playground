@@ -2,6 +2,7 @@ import traceback
 
 from clickhouse_driver import Client
 
+from src.apis.clickhouse_connection import ClickHouseConnection
 from src.apis.app_logger import AppLogger
 from src.apis.error_code import ErrorCode
 from src.apis.result import FailureContext, UnitResult, failure, unit_success
@@ -9,13 +10,13 @@ from src.models.entity import Entity
 
 
 class ClickHouseRepository:
-    def __init__(self):
+    def __init__(self, connection: ClickHouseConnection):
         self._client = Client(
-            host="clickhouse",
-            port=9000,
-            database="warehouse",
-            user="student",
-            password="strongpassword",
+            host=connection.host,
+            port=connection.port,
+            database=connection.database,
+            user=connection.user,
+            password=connection.password,
         )
         self._logger = AppLogger(self.__class__.__name__)
 
