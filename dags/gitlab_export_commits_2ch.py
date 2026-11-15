@@ -19,8 +19,8 @@ from src.models.gitlab_commit import GitlabCommit
     catchup=False,
     tags=["example"],
 )
-def gitlab_etl():
-    logger = AppLogger("GITLAB_ETL")
+def gitlab_export_commits_2ch():
+    logger = AppLogger("GITLAB_EXPORT_COMMITS_2CH")
 
     @task()
     async def extract_and_load() -> None:
@@ -70,10 +70,10 @@ def gitlab_etl():
 
     extract_and_load()
 
-gitlab_etl()
+gitlab_export_commits_2ch()
 
 
 
 if __name__ == "__main__":
-    dag_instance = gitlab_etl()
+    dag_instance = gitlab_export_commits_2ch()
     dag_instance.test()
