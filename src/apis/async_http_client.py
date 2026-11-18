@@ -1,7 +1,7 @@
 from types import TracebackType
 from typing import Any, Self
 
-from httpx import AsyncClient, HTTPError, Response
+from httpx import AsyncClient, HTTPError, Response, InvalidURL
 
 from src.apis.result import FailureContext, Result, create_http_error, success
 
@@ -51,7 +51,7 @@ class AsyncHttpClient:
             response: Response = await self._client.get(url=url, params=params)
             response.raise_for_status()
             return success(value=response)
-        except HTTPError as exc:
+        except (HTTPError, InvalidURL) as exc:
             return create_http_error(exc, context=context)
 
     async def __aenter__(self) -> Self:
@@ -69,4 +69,7 @@ class AsyncHttpClient:
         tb: TracebackType | None,
     ) -> None:
         """Exit the asynchronous context manager."""
+        await self._client.aclose()
+
+    async def aclose(self) -> None:
         await self._client.aclose()
