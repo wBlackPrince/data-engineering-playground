@@ -54,6 +54,48 @@ class AsyncHttpClient:
         except (HTTPError, InvalidURL) as exc:
             return create_http_error(exc, context=context)
 
+    async def post_async(
+        self,
+        url: str,
+        json: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> Result[Response]:
+        """Perform an asynchronous POST request.
+
+        The response status is checked using ``raise_for_status()``.
+        HTTPX exceptions are converted into application-level Failure
+        results using ``create_http_error()``.
+
+        Args:
+            url: URL of the resource to request.
+            json: Optional JSON body to send.
+            params: Optional query parameters.
+            headers: Optional request-specific headers.
+
+        Returns:
+            Success containing the HTTP response, or Failure
+            containing error information.
+        """
+        context = FailureContext(
+            operation="post_async",
+            source=self.__class__.__name__,
+        )
+
+        try:
+            response: Response = await self._client.post(
+                url=url,
+                json=json,
+                params=params,
+                headers=headers,
+            )
+            response.raise_for_status()
+            return success(value=response)
+
+        except (HTTPError, InvalidURL) as exc:
+            return create_http_error(exc, context=context)
+
+
     async def __aenter__(self) -> Self:
         """Enter the asynchronous context manager.
 
