@@ -41,7 +41,7 @@ class ClickHouseConnection:
                 key, value = part.split("=", 1)
                 parameters[key.strip().lower()] = value.strip()
 
-            required_parameters = {"host", "user", "password"}
+            required_parameters = {"host","database", "user", "password"}
             missing_parameters = required_parameters - parameters.keys()
 
             if missing_parameters:
@@ -55,7 +55,7 @@ class ClickHouseConnection:
             connection = ClickHouseConnection(
                 host=parameters["host"],
                 port=int(parameters.get("port", 9000)),
-                database=parameters.get("database", "warehouse"),
+                database=parameters["database"],
                 user=parameters["user"],
                 password=parameters["password"],
             )

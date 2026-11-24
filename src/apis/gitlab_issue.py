@@ -1,5 +1,6 @@
 from dataclasses import astuple, dataclass
 from datetime import date, datetime
+import os
 from typing import Any, ClassVar
 
 from src.apis.error_code import ErrorCode
@@ -9,7 +10,7 @@ from src.models.entity import Entity
 
 @dataclass(slots=True)
 class GitlabIssue(Entity):
-    DATABASE = "warehouse"
+    DATABASE = os.getenv("CLICKHOUSE_DATABASE")
     TABLE_NAME = "issues"
     PATH_TO_TABLE = f"{DATABASE}.{TABLE_NAME}"
 

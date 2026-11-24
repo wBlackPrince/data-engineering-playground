@@ -1,5 +1,6 @@
 from dataclasses import astuple, dataclass
 from datetime import datetime
+import os
 from typing import Any, ClassVar
 
 from src.apis.error_code import ErrorCode
@@ -8,7 +9,7 @@ from src.models.entity import Entity
 
 @dataclass(slots=True)
 class GitlabMergeRequest(Entity):
-    DATABASE = "warehouse"
+    DATABASE = os.getenv("CLICKHOUSE_DATABASE")
     TABLE_NAME = "merge_requests"
     PATH_TO_TABLE = f"{DATABASE}.{TABLE_NAME}"
 

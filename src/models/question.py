@@ -1,6 +1,7 @@
 from dataclasses import astuple, dataclass
 from decimal import Decimal
 import json
+import os
 from typing import Any, ClassVar
 from uuid import UUID
 
@@ -35,7 +36,7 @@ def parse_uuid_array(value: Any) -> list[UUID] | None:
 
 @dataclass(slots=True)
 class Question(Entity):
-    DATABASE = "warehouse"
+    DATABASE = os.getenv("CLICKHOUSE_DATABASE")
     TABLE_NAME = "questions"
     PATH_TO_TABLE = f"{DATABASE}.{TABLE_NAME}"
 
